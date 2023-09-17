@@ -5,14 +5,14 @@ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:taxi_chrono_web/views/dashboard_view.dart';
 
-import '../constants.dart';
+import '../constants/constants.dart';
 import '../controller/simple_ui_controller.dart';
 import '../localizations/localization.dart';
-import '../models/user_model.dart';
+import '../models/user_account_model.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({Key? key}) : super(key: key);
-  static const String pageName = "login_screen";
+  static const String pageName = "login";
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -37,23 +37,22 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
-    SimpleUIController simpleUIController = Get.find<SimpleUIController>();
+    //SimpleUIController simpleUIController = Get.find<SimpleUIController>();
+    SimpleUIController simpleUIController = Get.put(SimpleUIController());
     localization = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset: false,
-        body: SingleChildScrollView(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth > 600) {
-                return _buildLargeScreen(size, simpleUIController);
-              } else {
-                return _buildSmallScreen(size, simpleUIController);
-              }
-            },
-          ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth > 600) {
+              return _buildLargeScreen(size, simpleUIController);
+            } else {
+              return _buildSmallScreen(size, simpleUIController);
+            }
+          },
         ),
       ),
     );
@@ -246,7 +245,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
 
                 /// Navigate To Login Screen
-                GestureDetector(
+                /*GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
                     emailController.clear();
@@ -268,7 +267,7 @@ class _LoginViewState extends State<LoginView> {
                       ],
                     ),
                   ),
-                ),
+                ),*/
               ],
             ),
           ),
@@ -304,6 +303,12 @@ class _LoginViewState extends State<LoginView> {
                       "admin": value
                     });
               } else{
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(localization.trans("email_or_password_not_found")!),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
                 showAlertDialog(context, localization.trans("email_or_password_not_found")!);
               }
 

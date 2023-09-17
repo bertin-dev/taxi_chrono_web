@@ -45,8 +45,9 @@ dependencies:
   firebase_core: ^2.15.1
   flutter_launcher_icons: ^0.13.1
   provider: ^6.0.5
-  fl_chart: ^0.63.0
+  fl_chart: ^0.36.1
   flutter_svg: ^2.0.7
+  shared_preferences: ^2.2.1
 
 flutter_icons:
     android: "launcher_icon"
@@ -81,7 +82,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/
+    - assets/icons/
     - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see

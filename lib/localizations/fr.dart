@@ -15,4 +15,16 @@ const Map<String, dynamic> fr = {
   "error_message" : "Message d'erreur",
   "email_or_password_not_found": "Email ou mot de passe introuvable",
   "please_enter_field": "Veuillez remplir le champs",
+  "dashboard": "Tableau de Bord",
+  "salesperson": "Commerciaux",
+  "settings": "Configurations",
+  "logout": "Déconnexion",
+  "statistics": "Statistiques",
+  "message": "Message",
+  "view_all": "Voir Tout",
+  "add": "Ajouter",
+  "create_account": "Créer un Compte",
+  "validate": "Valider",
+  "salesperson_list": "Liste des Commerciaux",
+
 };

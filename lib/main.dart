@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:taxi_chrono_web/routes/route_generators.dart';
+import 'package:taxi_chrono_web/views/login_view.dart';
 import 'package:taxi_chrono_web/views/signup_view.dart';
 
 import 'localizations/localization.dart';
@@ -77,7 +78,7 @@ class _MyAppState extends State<MyApp> {
         }
         return supportedLocales.first;
       },
-      initialRoute: SignUpView.pageName,
+      initialRoute: LoginView.pageName,
       onGenerateRoute: RouteGenerator.generateRoute,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
