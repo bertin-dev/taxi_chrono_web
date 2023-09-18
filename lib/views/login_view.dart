@@ -3,16 +3,17 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
+import 'package:taxi_chrono_web/models/salesperson_model.dart';
 import 'package:taxi_chrono_web/views/dashboard_view.dart';
 
-import '../constants.dart';
+import '../constants/constants.dart';
 import '../controller/simple_ui_controller.dart';
 import '../localizations/localization.dart';
-import '../models/user_model.dart';
+import '../models/user_account_model.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({Key? key}) : super(key: key);
-  static const String pageName = "login_screen";
+  static const String pageName = "login";
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -26,6 +27,7 @@ class _LoginViewState extends State<LoginView> {
   final _db = FirebaseFirestore.instance;
   late AppLocalizations localization;
   var logger = Logger();
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -37,23 +39,22 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
-    SimpleUIController simpleUIController = Get.find<SimpleUIController>();
+    //SimpleUIController simpleUIController = Get.find<SimpleUIController>();
+    SimpleUIController simpleUIController = Get.put(SimpleUIController());
     localization = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
         backgroundColor: Colors.white,
         resizeToAvoidBottomInset: false,
-        body: SingleChildScrollView(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth > 600) {
-                return _buildLargeScreen(size, simpleUIController);
-              } else {
-                return _buildSmallScreen(size, simpleUIController);
-              }
-            },
-          ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth > 600) {
+              return _buildLargeScreen(size, simpleUIController);
+            } else {
+              return _buildSmallScreen(size, simpleUIController);
+            }
+          },
         ),
       ),
     );
@@ -246,7 +247,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
 
                 /// Navigate To Login Screen
-                GestureDetector(
+                /*GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
                     emailController.clear();
@@ -268,7 +269,7 @@ class _LoginViewState extends State<LoginView> {
                       ],
                     ),
                   ),
-                ),
+                ),*/
               ],
             ),
           ),
@@ -294,37 +295,91 @@ class _LoginViewState extends State<LoginView> {
         onPressed: () {
           // Validate returns true if the form is valid, or false otherwise.
           if (_formKey.currentState!.validate()) {
+            setState(() {
+              isLoading = true;
+            });
             // ... Navigate To your Dashboard
             getUserAuthenticate(emailController.text.trim(), passwordController.text.trim()).then((value) {
-
+              setState(() {
+                isLoading = false;
+              });
               if(value != null){
-                logger.d(value.toMap());
-                Navigator.of(context)
-                    .pushNamed(DashboardView.pageName, arguments: {
-                      "admin": value
-                    });
+
+                if(value is Administrator){
+                  logger.d(value.toMap());
+                  Navigator.of(context)
+                      .pushNamed(DashboardView.pageName, arguments: {
+                    "admin": value
+                  });
+                }
+                if(value is SalesPerson){
+                  logger.d("Bienvenue à vous commercial ${value.userName}");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("La session du commercial n'est pas encore disponible"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+
               } else{
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(localization.trans("email_or_password_not_found")!),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
                 showAlertDialog(context, localization.trans("email_or_password_not_found")!);
               }
 
             });
           }
         },
-        child: Text(localization.trans('login')!),
+        child: isLoading?  Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(localization.trans("loading")!, style: const TextStyle(fontSize: 20),),
+            const SizedBox(width: 10,),
+            const CircularProgressIndicator(color: Colors.white,),
+          ],
+        ) : Text(localization.trans('login')!, style: const TextStyle(fontSize: 20)),
       ),
     );
   }
 
 
-  Future<Administrator?> getUserAuthenticate(String email, String password) async {
+  Future getUserAuthenticate(String email, String password) async {
     Administrator? adminData;
-    final snapshot = await _db.collection("administrateur").where("email", isEqualTo: email).where("password", isEqualTo: password).get();
-    logger.d(snapshot.size);
-    if(snapshot.size == 0){
+    SalesPerson? salesPersonData;
+
+    // Vérification dans la collection "administrateur"
+    final adminCollection = _db.collection('administrateur');
+    final administratorQuery = await adminCollection
+        .where('email', isEqualTo: email)
+        .where('password', isEqualTo: password)
+        .limit(1)
+        .get();
+    logger.d(administratorQuery.size);
+    if (administratorQuery.docs.isNotEmpty) {
+      adminData = administratorQuery.docs.map((e) => Administrator.fromSnapshot(e)).single;
       return adminData;
     }
-    adminData = snapshot.docs.map((e) => Administrator.fromSnapshot(e)).single;
-    return adminData;
+
+    // Vérification dans la collection "Commerciaux"
+    final salespersonCollection = _db.collection('Commerciaux');
+    final salesPersonQuery = await salespersonCollection
+        .where('email', isEqualTo: email)
+        .where('password', isEqualTo: password)
+        .limit(1)
+        .get();
+    logger.d(salesPersonQuery.size);
+    if (salesPersonQuery.docs.isNotEmpty) {
+      salesPersonData = salesPersonQuery.docs.map((e) => SalesPerson.fromSnapshot(e)).single;
+      return salesPersonData;
+    }
+
+    return null;
+
   }
 
   showAlertDialog(BuildContext context, String message) {

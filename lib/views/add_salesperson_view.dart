@@ -1,28 +1,32 @@
+import 'dart:math';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
-
-import '../localizations/localization.dart';
-import '../models/user_account_model.dart';
-import '../views/login_view.dart';
+import 'package:taxi_chrono_web/models/user_account_model.dart';
+import 'package:taxi_chrono_web/models/salesperson_model.dart';
+import 'package:taxi_chrono_web/views/salesperson_view.dart';
 import '../constants/constants.dart';
 import '../controller/simple_ui_controller.dart';
+import '../localizations/localization.dart';
 
-class SignUpView extends StatefulWidget {
-  const SignUpView({Key? key}) : super(key: key);
-  static const String pageName = "signup";
+class AddSalesPersonView extends StatefulWidget {
+  const AddSalesPersonView({Key? key, this.admin}) : super(key: key);
+  static const String pageName = "add/salesperson";
+  final Administrator? admin;
 
   @override
-  State<SignUpView> createState() => _SignUpViewState();
+  State<AddSalesPersonView> createState() => _AddSalesPersonViewState();
 }
 
-class _SignUpViewState extends State<SignUpView> {
+class _AddSalesPersonViewState extends State<AddSalesPersonView> {
+
   TextEditingController nameController = TextEditingController();
   TextEditingController cniController = TextEditingController();
-  TextEditingController codeController = TextEditingController();
+  TextEditingController promoCodeController = TextEditingController();
   TextEditingController bornController = TextEditingController();
   TextEditingController expectedCniController = TextEditingController();
   TextEditingController countryController = TextEditingController();
@@ -37,13 +41,23 @@ class _SignUpViewState extends State<SignUpView> {
   late AppLocalizations localization;
   var logger = Logger();
   final _db = FirebaseFirestore.instance;
-  Administrator administrator = Administrator();
+  SalesPerson salesPerson = SalesPerson();
+  String? _genre;
+  String? _codePromo;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _codePromo = generatePromoCode();
+  }
 
   @override
   void dispose() {
     nameController.dispose();
     cniController.dispose();
-    codeController.dispose();
+    //promoCodeController.dispose();
     bornController.dispose();
     expectedCniController.dispose();
     countryController.dispose();
@@ -56,8 +70,7 @@ class _SignUpViewState extends State<SignUpView> {
     super.dispose();
   }
 
-  SimpleUIController simpleUIController = Get.find<SimpleUIController>();
-  //SimpleUIController simpleUIController = Get.put(SimpleUIController());
+  SimpleUIController simpleUIController = Get.put(SimpleUIController());
 
   @override
   Widget build(BuildContext context) {
@@ -124,23 +137,23 @@ class _SignUpViewState extends State<SignUpView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment:
-          size.width > 600 ? MainAxisAlignment.center : MainAxisAlignment.start,
+      size.width > 600 ? MainAxisAlignment.center : MainAxisAlignment.start,
       children: [
         size.width > 600
             ? Container()
             : Image.asset(
-                'assets/images/logo.jpg',
-                height: size.height * 0.2,
-                width: size.width,
-                fit: BoxFit.fill,
-              ),
+          'assets/images/logo.jpg',
+          height: size.height * 0.2,
+          width: size.width,
+          fit: BoxFit.fill,
+        ),
         SizedBox(
           height: size.height * 0.03,
         ),
         Padding(
           padding: const EdgeInsets.only(left: 20.0),
           child: Text(
-            'Sign Up',
+            localization.trans('salesperson')!,
             style: kLoginTitleStyle(size),
           ),
         ),
@@ -150,7 +163,7 @@ class _SignUpViewState extends State<SignUpView> {
         Padding(
           padding: const EdgeInsets.only(left: 20.0),
           child: Text(
-            'Create Account',
+            localization.trans('create_account')!,
             style: kLoginSubtitleStyle(size),
           ),
         ),
@@ -163,13 +176,13 @@ class _SignUpViewState extends State<SignUpView> {
             key: _formKey,
             child: Column(
               children: [
-                /// username
+                /// first and last name
                 TextFormField(
                   style: kTextFormFieldStyle(),
-                  onSaved: (val) => administrator.userName = val,
+                  onSaved: (val) => salesPerson.userName = val,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.person),
-                    hintText: 'Nom & Prenom',
+                    hintText: 'Nom & Prénom',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                     ),
@@ -201,7 +214,7 @@ class _SignUpViewState extends State<SignUpView> {
                 /// cni
                 TextFormField(
                   style: kTextFormFieldStyle(),
-                  onSaved: (val) => administrator.userCni = val,
+                  onSaved: (val) => salesPerson.userCni = val,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.perm_identity),
                     hintText: 'CNI',
@@ -233,14 +246,13 @@ class _SignUpViewState extends State<SignUpView> {
                   height: size.height * 0.02,
                 ),
 
-                /// code
+                /// expected cni
                 TextFormField(
                   style: kTextFormFieldStyle(),
-                  keyboardType: TextInputType.number,
-                  onSaved: (val) => administrator.code = val,
+                  onSaved: (val) => salesPerson.expireCniDate = val,
                   decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.lock),
-                    hintText: 'Code',
+                    prefixIcon: Icon(Icons.date_range_rounded),
+                    hintText: 'Date d\'expiration cni Ex: 12-10-2028',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                     ),
@@ -252,7 +264,7 @@ class _SignUpViewState extends State<SignUpView> {
                     ),
                   ),
 
-                  controller: codeController,
+                  controller: expectedCniController,
                   // The validator receives the text that the user has entered.
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -269,14 +281,130 @@ class _SignUpViewState extends State<SignUpView> {
                   height: size.height * 0.02,
                 ),
 
+                /// Quartier
+                TextFormField(
+                  style: kTextFormFieldStyle(),
+                  onSaved: (val) => salesPerson.quartier = val,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.abc_outlined),
+                    hintText: 'Quartier ',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                      borderSide: BorderSide(
+                        color: Colors.yellow,
+                      ),
+                    ),
+                  ),
+
+                  controller: quarterController,
+                  // The validator receives the text that the user has entered.
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return localization.trans('please_enter_field');
+                    } else if (value.length < 4) {
+                      return localization.trans('at_leaster_enter');
+                    } else if (value.length > 50) {
+                      return localization.trans('maximum_character');
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(
+                  height: size.height * 0.02,
+                ),
+
+                /// Genre
+                DropdownButtonFormField(
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.abc_outlined),
+                    hintText: 'Genre ',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                      borderSide: BorderSide(
+                        color: Colors.yellow,
+                      ),
+                    ),
+                  ),
+                  value: _genre,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'M',
+                      child: Text('Masculin'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'F',
+                      child: Text('Féminin'),
+                    ),
+                  ],
+                  onChanged: (String? value) {
+                    setState(() {
+                      _genre = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Le genre est obligatoire';
+                    }
+                    return null;
+                  },
+                ),
+
+                SizedBox(
+                  height: size.height * 0.02,
+                ),
+
+                /// phone
+                TextFormField(
+                  style: kTextFormFieldStyle(),
+                  keyboardType: TextInputType.phone,
+                  onSaved: (val) => salesPerson.userTelephone = val,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.phone),
+                    hintText: 'Téléphone ',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                      borderSide: BorderSide(
+                        color: Colors.yellow,
+                      ),
+                    ),
+                  ),
+
+                  controller: phoneController,
+                  // The validator receives the text that the user has entered.
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return localization.trans('please_enter_field');
+                    } else if (value.length < 4) {
+                      return localization.trans('at_leaster_enter');
+                    }else if (!value.isPhoneNumber) {
+                      return localization.trans('enter_phone_number');
+                    } else if (value.length > 50) {
+                      return localization.trans('maximum_character');
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(
+                  height: size.height * 0.02,
+                ),
+
                 /// born
-                /*TextFormField(
+                TextFormField(
                   style: kTextFormFieldStyle(),
                   keyboardType: TextInputType.datetime,
-                  onSaved: (val) => administrator.dateNaissance = val,
+                  onSaved: (val) => salesPerson.dateNaissance = val,
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.date_range),
-                    hintText: 'Born',
+                    hintText: 'Date de Naissance Ex: 02-01-1985',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                     ),
@@ -293,12 +421,12 @@ class _SignUpViewState extends State<SignUpView> {
                 ),
                 SizedBox(
                   height: size.height * 0.02,
-                ),*/
+                ),
 
                 /// Email
                 TextFormField(
                   style: kTextFormFieldStyle(),
-                  onSaved: (val) => administrator.userEmail = val,
+                  onSaved: (val) => salesPerson.userEmail = val,
                   keyboardType: TextInputType.emailAddress,
                   controller: emailController,
                   decoration: const InputDecoration(
@@ -334,10 +462,10 @@ class _SignUpViewState extends State<SignUpView> {
 
                 /// password
                 Obx(
-                  () => TextFormField(
+                      () => TextFormField(
                     style: kTextFormFieldStyle(),
                     controller: passwordController,
-                    onSaved: (val) => administrator.password = val,
+                    onSaved: (val) => salesPerson.password = val,
                     obscureText: simpleUIController.isObscure.value,
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.lock_open),
@@ -376,12 +504,29 @@ class _SignUpViewState extends State<SignUpView> {
                   ),
                 ),
                 SizedBox(
-                  height: size.height * 0.01,
+                  height: size.height * 0.03,
                 ),
-                Text(
-                  'Creating an account means you\'re okay with our Terms of Services and our Privacy Policy',
-                  style: kLoginTermsAndPrivacyStyle(size),
-                  textAlign: TextAlign.center,
+
+                /// promo code
+                TextFormField(
+                  style: kTextFormFieldStyle(),
+                  keyboardType: TextInputType.text,
+                  onSaved: (val) => _codePromo = val,
+                  initialValue: _codePromo,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.code_off),
+                    hintText: 'Code Promo',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(15)),
+                      borderSide: BorderSide(
+                        color: Colors.yellow,
+                      ),
+                    ),
+                  ),
                 ),
                 SizedBox(
                   height: size.height * 0.02,
@@ -391,36 +536,6 @@ class _SignUpViewState extends State<SignUpView> {
                 signUpButton(theme),
                 SizedBox(
                   height: size.height * 0.03,
-                ),
-
-                /// Navigate To Login Screen
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                            builder: (ctx) => const LoginView()));
-                    nameController.clear();
-                    cniController.clear();
-                    codeController.clear();
-                    bornController.clear();
-                    emailController.clear();
-                    passwordController.clear();
-                    _formKey.currentState?.reset();
-
-                    simpleUIController.isObscure.value = true;
-                  },
-                  child: RichText(
-                    text: TextSpan(
-                      text: 'Already have an account?',
-                      style: kHaveAnAccountStyle(size),
-                      children: [
-                        TextSpan(
-                            text: " Login",
-                            style: kLoginOrSignUpTextStyle(size)),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -444,30 +559,71 @@ class _SignUpViewState extends State<SignUpView> {
             ),
           ),
         ),
-        onPressed: () {
+        onPressed: () async {
           // Validate returns true if the form is valid, or false otherwise.
           if (_formKey.currentState!.validate()) {
+            setState(() {
+              isLoading = true;
+            });
             // ... Navigate To your Login
-            administrator.userName = nameController.text;
-            administrator.userCni = cniController.text;
-            administrator.code = codeController.text;
-            administrator.userEmail = emailController.text;
-            administrator.password = passwordController.text;
-            createAccountUser(administrator);
+            salesPerson.userName = nameController.text;
+            salesPerson.userCni = cniController.text;
+            salesPerson.dateNaissance = bornController.text;
+            salesPerson.expireCniDate = expectedCniController.text;
+            salesPerson.quartier = quarterController.text;
+            salesPerson.sexe = _genre;
+            salesPerson.userTelephone = phoneController.text;
+            salesPerson.userEmail = emailController.text;
+            salesPerson.password = passwordController.text;
+            salesPerson.promoCode = _codePromo;
+            salesPerson.access = false;
+            salesPerson.createdBy = widget.admin?.id;
+            await createUserAccountWithEmailPassword(salesPerson);
           }
         },
-        child: const Text('Sign up'),
+        child: isLoading?  Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(localization.trans("loading")!, style: const TextStyle(fontSize: 20),),
+            const SizedBox(width: 10,),
+            const CircularProgressIndicator(color: Colors.white,),
+          ],
+        ) : Text(localization.trans('validate')!, style: const TextStyle(fontSize: 20)),
       ),
     );
   }
 
-  createAccountUser(Administrator admin) async {
-    await _db.collection("administrateur").add(admin.toMap()).whenComplete(() {
+  createSalesPerson(SalesPerson salesPerson) async {
+    logger.d(salesPerson.toMap());
+    await _db.collection("Commerciaux").add(salesPerson.toMap()).whenComplete(() async {
+      setState(() {
+        isLoading = false;
+      });
       logger.i("Votre compte a ete crée avec succès.");
-      //await Future.delayed(const Duration(seconds: 2));
-      Navigator.of(context).pushNamed(LoginView.pageName);
+      //showAlertDialog(context, "Votre compte a ete crée avec succès.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Votre compte a ete crée avec succès."),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 3));
+      Navigator.of(context)
+          .pushNamed(SalesPersonView.pageName, arguments: {
+        "admin": widget.admin
+      });
 
     }).catchError((error, stackTrace) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       showAlertDialog(context, error);
     });
   }
@@ -497,5 +653,39 @@ class _SignUpViewState extends State<SignUpView> {
         return alert;
       },
     );
+  }
+
+  String generatePromoCode() {
+    Random random = Random();
+    String promoCode = '';
+    for (int i = 0; i < 7; i++) {
+      promoCode += random.nextInt(10).toString();
+    }
+    return promoCode;
+  }
+
+  Future<void> createUserAccountWithEmailPassword(SalesPerson salesPerson) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: salesPerson.userEmail!,
+        password: salesPerson.password!,
+      );
+
+      String salePersonId = userCredential.user!.uid;
+      salesPerson.id = salePersonId;
+      salesPerson.createdAt = Timestamp.now();
+
+      createSalesPerson(salesPerson);
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 }

@@ -15,5 +15,17 @@ const Map<String, dynamic> en = {
   "error_message" : "Error Message",
   "email_or_password_not_found": "Email or Password not found",
   "please_enter_field": "please enter field",
+  "dashboard": "Dash Board",
+  "salesperson": "Salesperson",
+  "settings": "Settings",
+  "logout": "Logout",
+  "statistics": "Statistics",
+  "message": "Message",
+  "view_all": "View All",
+  "add": "Add",
+  "create_account": "Create Account",
+  "validate": "Validate",
+  "salesperson_list": "Salesperson List",
+  "loading": "Loading...",
 
 };
