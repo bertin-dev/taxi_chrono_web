@@ -560,13 +560,11 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
           ),
         ),
         onPressed: () async {
-
-          setState(() {
-            isLoading = true;
-          });
-
           // Validate returns true if the form is valid, or false otherwise.
           if (_formKey.currentState!.validate()) {
+            setState(() {
+              isLoading = true;
+            });
             // ... Navigate To your Login
             salesPerson.userName = nameController.text;
             salesPerson.userCni = cniController.text;
@@ -590,7 +588,7 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
             const SizedBox(width: 10,),
             const CircularProgressIndicator(color: Colors.white,),
           ],
-        ) : Text(localization.trans('validate')!),
+        ) : Text(localization.trans('validate')!, style: const TextStyle(fontSize: 20)),
       ),
     );
   }
