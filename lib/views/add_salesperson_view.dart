@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,7 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
   SalesPerson salesPerson = SalesPerson();
   String? _genre;
   String? _codePromo;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -557,7 +559,12 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
             ),
           ),
         ),
-        onPressed: () {
+        onPressed: () async {
+
+          setState(() {
+            isLoading = true;
+          });
+
           // Validate returns true if the form is valid, or false otherwise.
           if (_formKey.currentState!.validate()) {
             // ... Navigate To your Login
@@ -573,10 +580,17 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
             salesPerson.promoCode = _codePromo;
             salesPerson.access = false;
             salesPerson.createdBy = widget.admin?.id;
-            createSalesPerson(salesPerson);
+            await createUserAccountWithEmailPassword(salesPerson);
           }
         },
-        child: Text(localization.trans('validate')!),
+        child: isLoading?  Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(localization.trans("loading")!, style: const TextStyle(fontSize: 20),),
+            const SizedBox(width: 10,),
+            const CircularProgressIndicator(color: Colors.white,),
+          ],
+        ) : Text(localization.trans('validate')!),
       ),
     );
   }
@@ -584,6 +598,9 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
   createSalesPerson(SalesPerson salesPerson) async {
     logger.d(salesPerson.toMap());
     await _db.collection("Commerciaux").add(salesPerson.toMap()).whenComplete(() async {
+      setState(() {
+        isLoading = false;
+      });
       logger.i("Votre compte a ete crée avec succès.");
       //showAlertDialog(context, "Votre compte a ete crée avec succès.");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -600,6 +617,9 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
       });
 
     }).catchError((error, stackTrace) {
+      setState(() {
+        isLoading = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error),
@@ -644,5 +664,30 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
       promoCode += random.nextInt(10).toString();
     }
     return promoCode;
+  }
+
+  Future<void> createUserAccountWithEmailPassword(SalesPerson salesPerson) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: salesPerson.userEmail!,
+        password: salesPerson.password!,
+      );
+
+      String salePersonId = userCredential.user!.uid;
+      salesPerson.id = salePersonId;
+      salesPerson.createdAt = Timestamp.now();
+
+      createSalesPerson(salesPerson);
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 }

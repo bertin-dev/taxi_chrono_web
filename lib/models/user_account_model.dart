@@ -23,8 +23,8 @@ class UserAccount {
   String? quartier;
   String? sexe;
   String? type;
-  String? createdAt;
-  String? updatedAt;
+  Timestamp? createdAt;
+  Timestamp? updatedAt;
 
   UserAccount({
     this.id,
@@ -144,8 +144,8 @@ class Administrator extends UserAccount {
     String? quartier,
     String? sexe,
     String? type,
-    String? createdAt,
-    String? updatedAt,
+    Timestamp? createdAt,
+    Timestamp? updatedAt,
   }) : super(id: id, expireCniDate: expireCniDate,
     userAdresse: userAdresse, userCni: userCni, userEmail: userEmail,
     userName: userName, userTelephone: userTelephone, access: access,

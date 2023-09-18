@@ -26,5 +26,6 @@ const Map<String, dynamic> fr = {
   "create_account": "Créer un Compte",
   "validate": "Valider",
   "salesperson_list": "Liste des Commerciaux",
+  "loading": "Chargement Encours...",
 
 };

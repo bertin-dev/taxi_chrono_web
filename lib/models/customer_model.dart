@@ -27,8 +27,8 @@ class Customer extends UserAccount {
     String? quartier,
     String? sexe,
     String? type,
-    String? createdAt,
-    String? updatedAt,
+    Timestamp? createdAt,
+    Timestamp? updatedAt,
     this.tickets
   }) : super(id: id, expireCniDate: expireCniDate,
     userAdresse: userAdresse, userCni: userCni, userEmail: userEmail,

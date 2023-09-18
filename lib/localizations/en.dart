@@ -26,5 +26,6 @@ const Map<String, dynamic> en = {
   "create_account": "Create Account",
   "validate": "Validate",
   "salesperson_list": "Salesperson List",
+  "loading": "Loading...",
 
 };
