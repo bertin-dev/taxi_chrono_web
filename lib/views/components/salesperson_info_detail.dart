@@ -39,11 +39,18 @@ class SalesPersonInfoDetail extends StatelessWidget {
                     ),
                   ),
 
+                  Text("Code Promo: ${itemSalesPerson.promoCode}",
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.5),
+                      fontSize: 13,
+                    ),
+                  ),
+
                   Text(
                     itemSalesPerson.userTelephone ?? "",
                     style: TextStyle(
                         color: textColor.withOpacity(0.5),
-                      fontSize: 13,
+                      fontSize: 11,
                     ),
                   ),
                 ],

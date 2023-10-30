@@ -609,11 +609,13 @@ class _AddSalesPersonViewState extends State<AddSalesPersonView> {
         ),
       );
 
-      await Future.delayed(const Duration(seconds: 3));
+      showAlertDialog(context, "Le code promo de ${salesPerson.userName} est: ${salesPerson.promoCode}");
+
+      /*await Future.delayed(const Duration(seconds: 59));
       Navigator.of(context)
           .pushNamed(SalesPersonView.pageName, arguments: {
         "admin": widget.admin
-      });
+      });*/
 
     }).catchError((error, stackTrace) {
       setState(() {
